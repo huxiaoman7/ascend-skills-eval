@@ -516,7 +516,14 @@ def evaluate_repos(payload: BatchRepoEvalRequest) -> dict[str, Any]:
             lines.append(f"- {f['repo_url']}: {f['detail']}")
     batch_report_markdown = "\n".join(lines) + "\n"
 
-    top_card = results[0]["card"] if results else None
+    # 与 ranking 第一名对齐（results 顺序与请求顺序一致，未必按分数排序）
+    top_card = None
+    if ranking:
+        top_hid = ranking[0]["history_id"]
+        for r in results:
+            if r.get("history_id") == top_hid:
+                top_card = r.get("card")
+                break
     return {
         "summary": {
             "total": len(payload.items),

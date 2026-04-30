@@ -222,15 +222,76 @@
     }
     .rank-item {
       display: flex;
-      justify-content: space-between;
-      gap: 8px;
+      flex-direction: column;
+      align-items: stretch;
+      gap: 6px;
       font-size: 12px;
       color: #c7d5ff;
-      padding: 5px 0;
-      border-bottom: 1px dashed #22325f;
+      padding: 8px 10px;
+      margin-bottom: 6px;
+      border-radius: 10px;
+      border: 1px solid transparent;
+      cursor: pointer;
+      transition: background 0.15s ease, border-color 0.15s ease;
+    }
+    .rank-item:hover {
+      background: rgba(95, 140, 255, 0.06);
+    }
+    .rank-item.active {
+      border-color: rgba(95, 140, 255, 0.45);
+      background: rgba(71, 111, 248, 0.12);
     }
     .rank-item:last-child {
-      border-bottom: 0;
+      margin-bottom: 0;
+    }
+    .rank-row-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      gap: 10px;
+    }
+    .rank-pos {
+      font-weight: 800;
+      color: #b8c9ff;
+      flex-shrink: 0;
+    }
+    .rank-skill {
+      flex: 1;
+      min-width: 0;
+      font-weight: 600;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    .rank-score {
+      flex-shrink: 0;
+      font-weight: 700;
+      color: #e8ecff;
+    }
+    .rank-row-sub {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 8px 12px;
+      font-size: 11px;
+      color: #7a8ab8;
+    }
+    a.rank-repo-link {
+      display: inline;
+      width: auto;
+      padding: 0;
+      border: 0;
+      background: none;
+      color: #9bb6ff;
+      font-weight: 600;
+      text-decoration: none;
+      cursor: pointer;
+    }
+    a.rank-repo-link:hover {
+      text-decoration: underline;
+    }
+    .rank-picked {
+      word-break: break-all;
     }
     .report {
       margin-top: 12px;
@@ -353,9 +414,10 @@
         <ul class="tips" id="tips"></ul>
         <div class="meta">
           <span id="mode">mode: -</span>
-          <div>
+          <div style="text-align:right;line-height:1.6;">
             <a id="downloadLink" href="#" style="color:#9bb6ff;display:none;margin-right:10px;">下载成果卡 PNG</a>
-            <a id="downloadReportLink" href="#" style="color:#9bb6ff;display:none;">下载评分报告 MD</a>
+            <a id="downloadReportLink" href="#" style="color:#9bb6ff;display:none;margin-right:10px;">下载当前报告 MD</a>
+            <a id="downloadBatchSummaryLink" href="#" style="color:#c9d6ff;display:none;">下载批量汇总 MD</a>
           </div>
         </div>
         <div class="preview">
@@ -367,6 +429,7 @@
         </div>
         <div class="rank">
           <h3>批量评分排行榜</h3>
+          <p id="rankHint" class="history-empty" style="margin:0 0 8px;font-size:11px;line-height:1.45;display:none;">点击某一行切换右侧成果卡与单仓报告；「打开仓库」在新标签页访问远端仓库。</p>
           <div id="rankList" class="history-empty">仅在「批量仓库」评测后展示</div>
         </div>
         <div class="history">
@@ -420,7 +483,9 @@ description: 昇腾技能评测器，提供结构评估和NPU验证流程。
     const downloadReportLinkEl = $("downloadReportLink");
     const reportTextEl = $("reportText");
     const rankListEl = $("rankList");
+    const rankHintEl = $("rankHint");
     const historyListEl = $("historyList");
+    const downloadBatchSummaryLinkEl = $("downloadBatchSummaryLink");
 
     const tabBtnPaste = $("tabBtnPaste");
     const tabBtnRepo = $("tabBtnRepo");
@@ -431,6 +496,37 @@ description: 昇腾技能评测器，提供结构评估和NPU验证流程。
     const sharedSkillPathWrap = $("sharedSkillPathWrap");
 
     let activeTab = "paste";
+
+    /** 批量评测：history_id -> 单次仓库评测完整返回（含 eval / card / report_markdown） */
+    let batchResultByHistoryId = new Map();
+
+    function clearBatchRankUi() {
+      batchResultByHistoryId = new Map();
+      downloadBatchSummaryLinkEl.style.display = "none";
+      downloadBatchSummaryLinkEl.href = "#";
+      rankHintEl.style.display = "none";
+    }
+
+    function setBatchSummaryDownload(markdown) {
+      if (!markdown || !markdown.trim()) {
+        downloadBatchSummaryLinkEl.style.display = "none";
+        return;
+      }
+      const blob = new Blob([markdown], { type: "text/markdown;charset=utf-8" });
+      const url = URL.createObjectURL(blob);
+      downloadBatchSummaryLinkEl.href = url;
+      downloadBatchSummaryLinkEl.download = "batch-repo-eval-summary.md";
+      downloadBatchSummaryLinkEl.style.display = "inline";
+    }
+
+    function selectBatchRank(historyId) {
+      const r = batchResultByHistoryId.get(historyId);
+      if (!r || !r.eval || !r.card) return;
+      document.querySelectorAll("#rankList .rank-item").forEach((el) => {
+        el.classList.toggle("active", el.dataset.historyId === historyId);
+      });
+      renderEvalAndCard(r.eval, r.card, r.report_markdown || "");
+    }
 
     function setTab(which) {
       activeTab = which;
@@ -466,23 +562,83 @@ description: 昇腾技能评测器，提供结构评估和NPU验证流程。
     tabBtnRepo.addEventListener("click", () => setTab("repo"));
     tabBtnBatch.addEventListener("click", () => setTab("batch"));
 
-    function renderRanking(ranking = []) {
+    function renderRanking(ranking = [], results = []) {
+      batchResultByHistoryId = new Map();
+      (results || []).forEach((r) => {
+        if (r && r.history_id) batchResultByHistoryId.set(r.history_id, r);
+      });
+
       if (!ranking.length) {
         rankListEl.className = "history-empty";
         rankListEl.textContent = "暂无数据（使用「批量仓库」后出现）";
+        clearBatchRankUi();
         return;
       }
+
       rankListEl.className = "";
       rankListEl.innerHTML = "";
+      rankHintEl.style.display = "block";
+
       ranking.forEach((item, idx) => {
         const row = document.createElement("div");
         row.className = "rank-item";
-        row.innerHTML = `
-          <span>#${idx + 1} ${item.skill_name}</span>
-          <span>${item.total_score} 分</span>
-        `;
+        row.dataset.historyId = item.history_id;
+        row.setAttribute("role", "button");
+        row.tabIndex = 0;
+
+        const top = document.createElement("div");
+        top.className = "rank-row-top";
+        const pos = document.createElement("span");
+        pos.className = "rank-pos";
+        pos.textContent = `#${idx + 1}`;
+        const skill = document.createElement("span");
+        skill.className = "rank-skill";
+        skill.textContent = item.skill_name || "";
+        skill.title = item.skill_name || "";
+        const sc = document.createElement("span");
+        sc.className = "rank-score";
+        sc.textContent = `${item.total_score} 分`;
+        top.appendChild(pos);
+        top.appendChild(skill);
+        top.appendChild(sc);
+
+        const sub = document.createElement("div");
+        sub.className = "rank-row-sub";
+        const link = document.createElement("a");
+        link.className = "rank-repo-link";
+        link.target = "_blank";
+        link.rel = "noopener noreferrer";
+        link.textContent = "打开仓库 ↗";
+        try {
+          const u = new URL(item.repo_url);
+          link.href =
+            u.protocol === "http:" || u.protocol === "https:" ? item.repo_url : "#";
+        } catch {
+          link.href = "#";
+        }
+        link.addEventListener("click", (e) => e.stopPropagation());
+        const picked = document.createElement("span");
+        picked.className = "rank-picked";
+        picked.textContent = item.picked_file || "";
+        sub.appendChild(link);
+        sub.appendChild(picked);
+
+        row.appendChild(top);
+        row.appendChild(sub);
+
+        row.addEventListener("click", () => selectBatchRank(item.history_id));
+        row.addEventListener("keydown", (e) => {
+          if (e.key === "Enter" || e.key === " ") {
+            e.preventDefault();
+            selectBatchRank(item.history_id);
+          }
+        });
         rankListEl.appendChild(row);
       });
+
+      if (ranking[0] && ranking[0].history_id) {
+        selectBatchRank(ranking[0].history_id);
+      }
     }
 
     function setReportMarkdown(reportMarkdown, skillName = "ascend-skills-eval") {
@@ -523,7 +679,8 @@ description: 昇腾技能评测器，提供结构评估和NPU验证流程。
       cardImageEl.style.display = "block";
 
       downloadLinkEl.href = src;
-      downloadLinkEl.download = "ascend-skills-eval-result.png";
+      const safeName = String(evalInfo.skill_name || "skill").replace(/[/\\?%*:|"<>]/g, "-");
+      downloadLinkEl.download = `${safeName}-result.png`;
       downloadLinkEl.style.display = "inline";
       setReportMarkdown(reportMarkdown, evalInfo.skill_name);
     }
@@ -544,6 +701,7 @@ description: 昇腾技能评测器，提供结构评估和NPU验证流程。
     async function replayHistoryItem(historyId) {
       statusEl.textContent = "正在回放历史记录...";
       statusEl.className = "status";
+      renderRanking([]);
       try {
         const detailResp = await fetch(`/history/${historyId}`);
         if (!detailResp.ok) {
@@ -673,6 +831,7 @@ description: 昇腾技能评测器，提供结构评估和NPU验证流程。
         const data = await resp.json();
         const evalInfo = data.eval;
         const card = data.card;
+        renderRanking([]);
         renderEvalAndCard(evalInfo, card, "");
 
         statusEl.textContent = "完成：已生成评分与成果卡";
@@ -762,20 +921,8 @@ description: 昇腾技能评测器，提供结构评估和NPU验证流程。
           throw new Error(text || "批量评分失败");
         }
         const data = await resp.json();
-        renderRanking(data.ranking || []);
-        setReportMarkdown(data.batch_report_markdown || "", "batch-repo-eval");
-
-        if (data.top_card) {
-          const first = data.ranking && data.ranking[0];
-          const fakeEval = {
-            skill_name: first ? first.skill_name : "top-result",
-            total_score: first ? first.total_score : "--",
-            mode: "batch_repo_eval",
-            dimensions: [],
-            suggestions: [],
-          };
-          renderEvalAndCard(fakeEval, data.top_card, data.batch_report_markdown || "");
-        }
+        renderRanking(data.ranking || [], data.results || []);
+        setBatchSummaryDownload(data.batch_report_markdown || "");
 
         statusEl.textContent = `批量完成：成功 ${data.summary.success} / 失败 ${data.summary.failed}`;
         statusEl.className = "status ok";
