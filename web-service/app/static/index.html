@@ -316,20 +316,46 @@
     }
     .history-item {
       display: flex;
-      justify-content: space-between;
-      gap: 8px;
+      align-items: center;
+      gap: 10px;
       font-size: 12px;
       color: #c7d5ff;
       padding: 6px 0;
       border-bottom: 1px dashed #22325f;
-      cursor: pointer;
       transition: opacity 0.15s ease;
     }
     .history-item:hover {
-      opacity: 0.85;
+      opacity: 0.92;
     }
     .history-item:last-child {
       border-bottom: 0;
+    }
+    .history-item-main {
+      flex: 1;
+      min-width: 0;
+      display: flex;
+      justify-content: space-between;
+      gap: 8px;
+      cursor: pointer;
+    }
+    .history-item-main:hover {
+      opacity: 0.88;
+    }
+    button.history-item-del {
+      flex-shrink: 0;
+      width: auto;
+      min-width: auto;
+      padding: 4px 10px;
+      font-size: 11px;
+      font-weight: 600;
+      background: rgba(255, 80, 80, 0.08);
+      border: 1px solid rgba(232, 85, 85, 0.45);
+      color: #ffb4b4;
+      border-radius: 8px;
+    }
+    button.history-item-del:hover {
+      background: rgba(232, 85, 85, 0.18);
+      border-color: rgba(255, 120, 120, 0.65);
     }
     .history-empty {
       color: var(--muted);
@@ -527,6 +553,14 @@ description: 昇腾技能评测器，提供结构评估和NPU验证流程。
       } catch (e) {
         console.warn("本机历史写入失败（可能超出存储配额）", e);
       }
+    }
+
+    function localHistoryRemove(id) {
+      const next = localHistoryRead().filter((x) => x.id !== id);
+      localHistoryWrite(next);
+      loadHistory();
+      statusEl.textContent = "已删除本条本机历史";
+      statusEl.className = "status ok";
     }
 
     function clearBatchRankUi() {
@@ -752,14 +786,30 @@ description: 昇腾技能评测器，提供结构评估和NPU验证流程。
       rows.forEach((r) => {
         const row = document.createElement("div");
         row.className = "history-item";
+
+        const main = document.createElement("div");
+        main.className = "history-item-main";
         const left = document.createElement("span");
         left.textContent = r.skill_name || "";
         const right = document.createElement("span");
         right.textContent = `${r.total_score} 分 · ${new Date(r.timestamp).toLocaleString()}`;
-        row.appendChild(left);
-        row.appendChild(right);
-        row.title = "点击回放（仅本机保存）";
-        row.addEventListener("click", () => replayLocalHistoryItem(r.id));
+        main.appendChild(left);
+        main.appendChild(right);
+        main.title = "点击回放（仅本机保存）";
+        main.addEventListener("click", () => replayLocalHistoryItem(r.id));
+
+        const delBtn = document.createElement("button");
+        delBtn.type = "button";
+        delBtn.className = "history-item-del";
+        delBtn.textContent = "删除";
+        delBtn.title = "从本机历史中移除本条";
+        delBtn.addEventListener("click", (e) => {
+          e.stopPropagation();
+          localHistoryRemove(r.id);
+        });
+
+        row.appendChild(main);
+        row.appendChild(delBtn);
         historyListEl.appendChild(row);
       });
     }
