@@ -9,9 +9,8 @@
 - `POST /evaluate-repos`：批量仓库评分（支持排行榜和批量报告）
 - `GET /health`：健康检查
 - `GET /`：内置极简 Web 页面（粘贴 SKILL.md 直接评估）
-- `GET /history`：最近 10 次评测历史
-- `GET /history/{id}`：单条历史详情（用于回放）
 
+> Web 页「最近评测」列表仅存于**浏览器 localStorage**（每设备独立），服务端不保存历史。  
 > 说明：此版本默认是**在线结构评估**。真实 NPU 实测需要额外接入本地 Ascend Runner。
 
 ## 本地运行

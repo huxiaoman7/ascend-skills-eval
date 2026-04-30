@@ -15,7 +15,7 @@
 - 昇腾/NPU 关键词与流程的评测适配
 - 评分报告与评分卡（PNG）自动生成
 - 仓库链接评测（GitHub/GitCode）与批量排行榜
-- 在线页面、历史记录与回放能力
+- 在线页面；评测历史仅在浏览器本地保存（localStorage）与回放
 
 ---
 
@@ -37,7 +37,7 @@ skills-eval/
 - 仓库评测：输入 GitHub/GitCode 链接自动拉取评分
 - 批量评测：多个仓库一键评分并生成排行榜
 - 可视化产物：自动生成评分报告（Markdown）与评分图（PNG）
-- 历史回放：保留最近 10 次评测，可点击回放
+- 历史回放：Web 页保留本机最近 10 次（localStorage），可点击回放
 
 ---
 
@@ -69,8 +69,8 @@ uvicorn app.main:app --host 0.0.0.0 --port 8000
 - `POST /evaluate-and-render`：文本评测 + 评分卡
 - `POST /evaluate-repo`：单仓库链接评测
 - `POST /evaluate-repos`：批量仓库链接评测
-- `GET /history`：历史列表
-- `GET /history/{id}`：历史详情（用于回放）
+
+（评测历史由前端写入浏览器 localStorage，无独立历史 API。）
 
 ---
 

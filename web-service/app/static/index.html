@@ -428,8 +428,8 @@
           <div id="rankList" class="history-empty">仅在「批量仓库」评测后展示</div>
         </div>
         <div class="history">
-          <h3>最近 10 次评测</h3>
-          <div id="historyList" class="history-empty">暂无历史</div>
+          <h3>本机最近 10 次评测</h3>
+          <div id="historyList" class="history-empty">暂无历史（仅存当前浏览器）</div>
         </div>
       </section>
     </div>
@@ -494,6 +494,40 @@ description: 昇腾技能评测器，提供结构评估和NPU验证流程。
 
     /** 批量评测：history_id -> 单次仓库评测完整返回（含 eval / card / report_markdown） */
     let batchResultByHistoryId = new Map();
+
+    const LOCAL_HISTORY_KEY = "ascend-skills-eval-local-history-v1";
+    const LOCAL_HISTORY_MAX = 10;
+
+    function newLocalHistoryId() {
+      if (typeof crypto !== "undefined" && crypto.randomUUID) {
+        return crypto.randomUUID();
+      }
+      return `${Date.now()}-${Math.random().toString(36).slice(2, 11)}`;
+    }
+
+    function localHistoryRead() {
+      try {
+        const raw = localStorage.getItem(LOCAL_HISTORY_KEY);
+        if (!raw) return [];
+        const arr = JSON.parse(raw);
+        return Array.isArray(arr) ? arr : [];
+      } catch {
+        return [];
+      }
+    }
+
+    function localHistoryWrite(items) {
+      localStorage.setItem(LOCAL_HISTORY_KEY, JSON.stringify(items));
+    }
+
+    function localHistoryPrepend(entry) {
+      try {
+        const next = [entry, ...localHistoryRead()].slice(0, LOCAL_HISTORY_MAX);
+        localHistoryWrite(next);
+      } catch (e) {
+        console.warn("本机历史写入失败（可能超出存储配额）", e);
+      }
+    }
 
     function clearBatchRankUi() {
       batchResultByHistoryId = new Map();
@@ -680,96 +714,54 @@ description: 昇腾技能评测器，提供结构评估和NPU验证流程。
       setReportMarkdown(reportMarkdown, evalInfo.skill_name);
     }
 
-    async function renderCardFromData(cardData) {
-      const resp = await fetch("/render-card", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ data: cardData, open_image: false }),
-      });
-      if (!resp.ok) {
-        const text = await resp.text();
-        throw new Error(text || "成果卡渲染失败");
-      }
-      return await resp.json();
-    }
-
-    async function replayHistoryItem(historyId) {
-      statusEl.textContent = "正在回放历史记录...";
+    function replayLocalHistoryItem(historyId) {
+      statusEl.textContent = "正在回放本机记录...";
       statusEl.className = "status";
       renderRanking([]);
+      const detail = localHistoryRead().find((x) => x.id === historyId);
+      if (!detail) {
+        statusEl.textContent = "未找到该条本机历史";
+        statusEl.className = "status";
+        return;
+      }
       try {
-        const detailResp = await fetch(`/history/${historyId}`);
-        if (!detailResp.ok) {
-          const text = await detailResp.text();
-          throw new Error(text || "历史详情获取失败");
-        }
-        const detail = await detailResp.json();
         setTab("paste");
         skillNameEl.value = detail.skill_name || "";
         skillMarkdownEl.value = detail.skill_markdown || "";
         if (detail.source_type === "repo" && detail.source_ref) {
           repoUrlEl.value = detail.source_ref;
         }
-
-        const card = await renderCardFromData(detail.card_data);
-        const reportResp = await fetch("/eval", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            skill_name: detail.skill_name,
-            skill_markdown: detail.skill_markdown,
-          }),
-        });
-        const reportData = await reportResp.json();
-        const reportLines = [
-          "# ascend-skills-eval 评分报告（回放）",
-          "",
-          `- 技能名：${detail.skill_name}`,
-          `- 总分：${reportData.total_score}/100`,
-          `- 模式：${reportData.mode}`,
-          "",
-          "## 优化建议",
-          "",
-          ...reportData.suggestions.map((s, i) => `${i + 1}. ${s}`),
-        ];
-        renderEvalAndCard(detail.eval, card, reportLines.join("\n"));
-
-        statusEl.textContent = "历史回放完成";
+        renderEvalAndCard(detail.eval, detail.card, detail.report_markdown || "");
+        statusEl.textContent = "已从本机历史回放";
         statusEl.className = "status ok";
       } catch (err) {
-        statusEl.textContent = `历史回放失败：${err.message}`;
+        statusEl.textContent = `回放失败：${err.message}`;
         statusEl.className = "status";
       }
     }
 
-    async function loadHistory() {
-      try {
-        const resp = await fetch("/history");
-        if (!resp.ok) throw new Error("加载历史失败");
-        const rows = await resp.json();
-        if (!rows.length) {
-          historyListEl.className = "history-empty";
-          historyListEl.textContent = "暂无历史";
-          return;
-        }
-        historyListEl.className = "";
-        historyListEl.innerHTML = "";
-        rows.forEach((r) => {
-          const row = document.createElement("div");
-          row.className = "history-item";
-          const ts = new Date(r.timestamp).toLocaleString();
-          row.innerHTML = `
-            <span>${r.skill_name}</span>
-            <span>${r.total_score} 分 · ${ts}</span>
-          `;
-          row.title = "点击回放本次结果";
-          row.addEventListener("click", () => replayHistoryItem(r.id));
-          historyListEl.appendChild(row);
-        });
-      } catch {
+    function loadHistory() {
+      const rows = localHistoryRead();
+      if (!rows.length) {
         historyListEl.className = "history-empty";
-        historyListEl.textContent = "历史加载失败";
+        historyListEl.textContent = "暂无历史（仅存当前浏览器）";
+        return;
       }
+      historyListEl.className = "";
+      historyListEl.innerHTML = "";
+      rows.forEach((r) => {
+        const row = document.createElement("div");
+        row.className = "history-item";
+        const left = document.createElement("span");
+        left.textContent = r.skill_name || "";
+        const right = document.createElement("span");
+        right.textContent = `${r.total_score} 分 · ${new Date(r.timestamp).toLocaleString()}`;
+        row.appendChild(left);
+        row.appendChild(right);
+        row.title = "点击回放（仅本机保存）";
+        row.addEventListener("click", () => replayLocalHistoryItem(r.id));
+        historyListEl.appendChild(row);
+      });
     }
 
     sampleBtnEl.addEventListener("click", () => {
@@ -829,9 +821,23 @@ description: 昇腾技能评测器，提供结构评估和NPU验证流程。
         renderRanking([]);
         renderEvalAndCard(evalInfo, card, "");
 
+        localHistoryPrepend({
+          id: newLocalHistoryId(),
+          timestamp: new Date().toISOString(),
+          skill_name: evalInfo.skill_name,
+          total_score: evalInfo.total_score,
+          mode: evalInfo.mode,
+          skill_markdown,
+          eval: evalInfo,
+          card,
+          report_markdown: "",
+          source_type: "text",
+          source_ref: evalInfo.skill_name,
+        });
+        loadHistory();
+
         statusEl.textContent = "完成：已生成评分与成果卡";
         statusEl.className = "status ok";
-        await loadHistory();
       } catch (err) {
         statusEl.textContent = `失败：${err.message}`;
         statusEl.className = "status";
@@ -872,9 +878,22 @@ description: 昇腾技能评测器，提供结构评估和NPU验证流程。
         skillMarkdownEl.value = data.skill_markdown || skillMarkdownEl.value;
         renderEvalAndCard(data.eval, data.card, data.report_markdown || "");
         renderRanking([]);
+        localHistoryPrepend({
+          id: newLocalHistoryId(),
+          timestamp: new Date().toISOString(),
+          skill_name: data.eval.skill_name,
+          total_score: data.eval.total_score,
+          mode: data.eval.mode,
+          skill_markdown: data.skill_markdown || "",
+          eval: data.eval,
+          card: data.card,
+          report_markdown: data.report_markdown || "",
+          source_type: "repo",
+          source_ref: data.repo_url,
+        });
+        loadHistory();
         statusEl.textContent = `完成：仓库评分成功（${data.picked_file}）· 正文已同步到「粘贴 SKILL」标签，可改后再评`;
         statusEl.className = "status ok";
-        await loadHistory();
       } catch (err) {
         statusEl.textContent = `仓库评分失败：${err.message}`;
         statusEl.className = "status";
@@ -919,9 +938,25 @@ description: 昇腾技能评测器，提供结构评估和NPU验证流程。
         renderRanking(data.ranking || [], data.results || []);
         setBatchSummaryDownload(data.batch_report_markdown || "");
 
+        (data.results || []).forEach((r) => {
+          localHistoryPrepend({
+            id: newLocalHistoryId(),
+            timestamp: new Date().toISOString(),
+            skill_name: r.eval.skill_name,
+            total_score: r.eval.total_score,
+            mode: r.eval.mode,
+            skill_markdown: r.skill_markdown || "",
+            eval: r.eval,
+            card: r.card,
+            report_markdown: r.report_markdown || "",
+            source_type: "repo",
+            source_ref: r.repo_url,
+          });
+        });
+        loadHistory();
+
         statusEl.textContent = `批量完成：成功 ${data.summary.success} / 失败 ${data.summary.failed}`;
         statusEl.className = "status ok";
-        await loadHistory();
       } catch (err) {
         statusEl.textContent = `批量评分失败：${err.message}`;
         statusEl.className = "status";

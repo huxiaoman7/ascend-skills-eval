@@ -6,7 +6,6 @@ import re
 import subprocess
 import tempfile
 from urllib.parse import urlparse
-from collections import deque
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
@@ -58,30 +57,6 @@ class RenderResponse(BaseModel):
     image_base64: str
     mime_type: str = "image/png"
     size_bytes: int
-
-
-class HistoryItem(BaseModel):
-    id: str
-    timestamp: str
-    skill_name: str
-    total_score: float
-    mode: str
-
-
-class HistoryDetail(BaseModel):
-    id: str
-    timestamp: str
-    skill_name: str
-    total_score: float
-    mode: str
-    skill_markdown: str
-    eval: dict[str, Any]
-    card_data: dict[str, Any]
-    source_type: str | None = None
-    source_ref: str | None = None
-
-
-HISTORY: deque[dict[str, Any]] = deque(maxlen=10)
 
 
 app = FastAPI(
@@ -280,7 +255,7 @@ def _repo_name_from_url(repo_url: str) -> str:
     return tail or "repo-skill"
 
 
-def _evaluate_repo_internal(payload: RepoEvalRequest, *, add_history: bool = True) -> dict[str, Any]:
+def _evaluate_repo_internal(payload: RepoEvalRequest) -> dict[str, Any]:
     repo_url = _validate_repo_url(payload.repo_url.strip())
     with tempfile.TemporaryDirectory(prefix="ascend-skills-repo-") as tmp_dir_str:
         tmp_dir = Path(tmp_dir_str)
@@ -333,21 +308,6 @@ def _evaluate_repo_internal(payload: RepoEvalRequest, *, add_history: bool = Tru
         )
 
         history_id = datetime.now(timezone.utc).strftime("%Y%m%d%H%M%S%f")
-        if add_history:
-            HISTORY.appendleft(
-                {
-                    "id": history_id,
-                    "timestamp": datetime.now(timezone.utc).isoformat(),
-                    "skill_name": eval_result.skill_name,
-                    "total_score": eval_result.total_score,
-                    "mode": eval_result.mode,
-                    "skill_markdown": skill_markdown,
-                    "eval": eval_result.model_dump(),
-                    "card_data": card_data,
-                    "source_type": "repo",
-                    "source_ref": repo_url,
-                }
-            )
         return {
             "eval": eval_result.model_dump(),
             "card": render_result.model_dump(),
@@ -438,27 +398,12 @@ def evaluate_and_render(payload: EvalRequest) -> dict[str, Any]:
         "dims": dims_for_card,
     }
     render_result = render_card(RenderRequest(data=card_data, open_image=False))
-    history_id = datetime.now(timezone.utc).strftime("%Y%m%d%H%M%S%f")
-    HISTORY.appendleft(
-        {
-            "id": history_id,
-            "timestamp": datetime.now(timezone.utc).isoformat(),
-            "skill_name": eval_result.skill_name,
-            "total_score": eval_result.total_score,
-            "mode": eval_result.mode,
-            "skill_markdown": payload.skill_markdown,
-            "eval": eval_result.model_dump(),
-            "card_data": card_data,
-            "source_type": "text",
-            "source_ref": eval_result.skill_name,
-        }
-    )
-    return {"eval": eval_result.model_dump(), "card": render_result.model_dump(), "history_id": history_id}
+    return {"eval": eval_result.model_dump(), "card": render_result.model_dump()}
 
 
 @app.post("/evaluate-repo")
 def evaluate_repo(payload: RepoEvalRequest) -> dict[str, Any]:
-    return _evaluate_repo_internal(payload, add_history=True)
+    return _evaluate_repo_internal(payload)
 
 
 @app.post("/evaluate-repos")
@@ -468,7 +413,7 @@ def evaluate_repos(payload: BatchRepoEvalRequest) -> dict[str, Any]:
 
     for item in payload.items:
         try:
-            result = _evaluate_repo_internal(item, add_history=True)
+            result = _evaluate_repo_internal(item)
             results.append(result)
         except HTTPException as exc:
             failed.append(
@@ -536,16 +481,3 @@ def evaluate_repos(payload: BatchRepoEvalRequest) -> dict[str, Any]:
         "batch_report_markdown": batch_report_markdown,
         "top_card": top_card,
     }
-
-
-@app.get("/history", response_model=list[HistoryItem])
-def get_history() -> list[HistoryItem]:
-    return [HistoryItem(**item) for item in HISTORY]
-
-
-@app.get("/history/{history_id}", response_model=HistoryDetail)
-def get_history_detail(history_id: str) -> HistoryDetail:
-    for item in HISTORY:
-        if item.get("id") == history_id:
-            return HistoryDetail(**item)
-    raise HTTPException(status_code=404, detail="未找到该历史记录")
