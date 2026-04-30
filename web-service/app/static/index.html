@@ -1,0 +1,638 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ascend-skills-eval 在线评测</title>
+  <style>
+    :root {
+      --bg: #0b1020;
+      --card: #111a33;
+      --text: #e8ecff;
+      --muted: #9aa8d1;
+      --line: #243158;
+      --brand: #5f8cff;
+      --ok: #2bb673;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "PingFang SC", "Noto Sans SC", sans-serif;
+      background: radial-gradient(circle at top, #16234a 0%, var(--bg) 45%);
+      color: var(--text);
+      min-height: 100vh;
+    }
+    .wrap {
+      max-width: 1080px;
+      margin: 0 auto;
+      padding: 28px 16px 56px;
+    }
+    .title {
+      font-size: 28px;
+      font-weight: 800;
+      margin: 0 0 8px;
+    }
+    .sub {
+      margin: 0 0 22px;
+      color: var(--muted);
+      font-size: 14px;
+    }
+    .grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+    }
+    .card {
+      background: linear-gradient(180deg, rgba(255,255,255,0.04), rgba(255,255,255,0.02));
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      padding: 14px;
+    }
+    .label {
+      font-size: 13px;
+      color: var(--muted);
+      margin-bottom: 6px;
+    }
+    input, textarea, button {
+      width: 100%;
+      border-radius: 10px;
+      border: 1px solid var(--line);
+      background: var(--card);
+      color: var(--text);
+      padding: 10px 12px;
+      font-size: 14px;
+      outline: none;
+    }
+    textarea {
+      min-height: 360px;
+      resize: vertical;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      line-height: 1.45;
+    }
+    .actions {
+      display: flex;
+      gap: 10px;
+      margin-top: 10px;
+      flex-wrap: wrap;
+    }
+    button {
+      cursor: pointer;
+      background: linear-gradient(90deg, #476ff8, var(--brand));
+      border: 0;
+      font-weight: 700;
+      transition: transform 0.15s ease;
+    }
+    button:active { transform: scale(0.99); }
+    button.secondary {
+      background: #263867;
+      border: 1px solid #345097;
+    }
+    .status {
+      margin-top: 10px;
+      font-size: 13px;
+      color: var(--muted);
+      min-height: 20px;
+    }
+    .status.ok { color: var(--ok); }
+    .score {
+      font-size: 40px;
+      font-weight: 900;
+      margin: 0 0 10px;
+    }
+    .dim {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 7px 0;
+      border-bottom: 1px dashed #2a3a6e;
+      font-size: 13px;
+    }
+    .dim:last-child { border-bottom: 0; }
+    .tips {
+      margin-top: 12px;
+      padding-left: 18px;
+      color: #c9d6ff;
+      font-size: 13px;
+      line-height: 1.5;
+    }
+    .preview {
+      margin-top: 12px;
+      border-radius: 10px;
+      overflow: hidden;
+      border: 1px solid #30457f;
+      background: #0a0f1f;
+    }
+    .preview img {
+      width: 100%;
+      display: none;
+    }
+    .meta {
+      display: flex;
+      justify-content: space-between;
+      color: var(--muted);
+      font-size: 12px;
+      margin-top: 8px;
+    }
+    .history {
+      margin-top: 12px;
+      border-top: 1px dashed #2a3a6e;
+      padding-top: 10px;
+    }
+    .rank {
+      margin-top: 12px;
+      border-top: 1px dashed #2a3a6e;
+      padding-top: 10px;
+    }
+    .rank h3 {
+      margin: 0 0 8px;
+      font-size: 13px;
+      color: var(--muted);
+      font-weight: 600;
+    }
+    .rank-item {
+      display: flex;
+      justify-content: space-between;
+      gap: 8px;
+      font-size: 12px;
+      color: #c7d5ff;
+      padding: 5px 0;
+      border-bottom: 1px dashed #22325f;
+    }
+    .rank-item:last-child {
+      border-bottom: 0;
+    }
+    .report {
+      margin-top: 12px;
+      border-top: 1px dashed #2a3a6e;
+      padding-top: 10px;
+    }
+    .report pre {
+      margin: 0;
+      white-space: pre-wrap;
+      word-break: break-word;
+      max-height: 220px;
+      overflow: auto;
+      background: #0d1530;
+      border: 1px solid #2d427a;
+      border-radius: 8px;
+      padding: 10px;
+      font-size: 12px;
+      line-height: 1.45;
+      color: #d8e2ff;
+    }
+    .history h3 {
+      margin: 0 0 8px;
+      font-size: 13px;
+      color: var(--muted);
+      font-weight: 600;
+    }
+    .history-item {
+      display: flex;
+      justify-content: space-between;
+      gap: 8px;
+      font-size: 12px;
+      color: #c7d5ff;
+      padding: 6px 0;
+      border-bottom: 1px dashed #22325f;
+      cursor: pointer;
+      transition: opacity 0.15s ease;
+    }
+    .history-item:hover {
+      opacity: 0.85;
+    }
+    .history-item:last-child {
+      border-bottom: 0;
+    }
+    .history-empty {
+      color: var(--muted);
+      font-size: 12px;
+    }
+    @media (max-width: 960px) {
+      .grid { grid-template-columns: 1fr; }
+      textarea { min-height: 260px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <h1 class="title">ascend-skills-eval 在线评测</h1>
+    <p class="sub">粘贴 SKILL.md 内容，点击按钮即可在线评分并生成成果卡。</p>
+
+    <div class="grid">
+      <section class="card">
+        <div class="label">技能名（可选）</div>
+        <input id="skillName" value="ascend-skills-eval" />
+
+        <div class="label" style="margin-top:10px;">仓库链接评分（GitHub/GitCode）</div>
+        <input id="repoUrl" placeholder="https://github.com/owner/repo 或 https://gitcode.com/owner/repo" />
+        <input id="repoSkillPath" placeholder="可选：仓库内文件路径，如 skills/foo/SKILL.md" style="margin-top:6px;" />
+        <textarea id="batchRepoUrls" placeholder="批量仓库链接（每行一个，可混合 GitHub/GitCode）" style="min-height:120px;margin-top:6px;"></textarea>
+
+        <div class="label" style="margin-top:10px;">SKILL.md 内容</div>
+        <input type="file" id="mdFile" accept=".md,.markdown,text/markdown,text/plain" style="margin-bottom:8px;" />
+        <textarea id="skillMarkdown" placeholder="在这里粘贴完整 SKILL.md"></textarea>
+
+        <div class="actions">
+          <button id="runBtn">评估并生成成果卡</button>
+          <button class="secondary" id="repoBtn">从仓库链接评分</button>
+          <button class="secondary" id="batchRepoBtn">批量仓库评分</button>
+          <button class="secondary" id="sampleBtn">填入示例</button>
+        </div>
+        <div class="status" id="status">等待输入</div>
+      </section>
+
+      <section class="card">
+        <div class="score" id="score">--.-</div>
+        <div class="label">维度评分</div>
+        <div id="dims"></div>
+        <ul class="tips" id="tips"></ul>
+        <div class="meta">
+          <span id="mode">mode: -</span>
+          <div>
+            <a id="downloadLink" href="#" style="color:#9bb6ff;display:none;margin-right:10px;">下载成果卡 PNG</a>
+            <a id="downloadReportLink" href="#" style="color:#9bb6ff;display:none;">下载评分报告 MD</a>
+          </div>
+        </div>
+        <div class="preview">
+          <img id="cardImage" alt="result card" />
+        </div>
+        <div class="report">
+          <h3 style="margin:0 0 8px;font-size:13px;color:#9aa8d1;font-weight:600;">评分报告（摘要）</h3>
+          <pre id="reportText">暂无报告</pre>
+        </div>
+        <div class="rank">
+          <h3>批量评分排行榜</h3>
+          <div id="rankList" class="history-empty">暂无数据</div>
+        </div>
+        <div class="history">
+          <h3>最近 10 次评测</h3>
+          <div id="historyList" class="history-empty">暂无历史</div>
+        </div>
+      </section>
+    </div>
+  </div>
+
+  <script>
+    const sample = `---
+name: ascend-skills-eval
+description: 昇腾技能评测器，提供结构评估和NPU验证流程。
+---
+
+# Ascend Skills Eval
+
+## Phase 0: 初始化
+1. 检查 npu-smi info
+2. 创建 results.tsv
+
+## Phase 1: 评估
+1. 结构评分
+2. 设计 test prompts
+3. 记录失败 fallback
+
+## 异常处理
+- 如果 NPU 不可用，降级 dry_run
+- 如果命令失败，记录日志并重试
+`;
+
+    const $ = (id) => document.getElementById(id);
+    const skillNameEl = $("skillName");
+    const skillMarkdownEl = $("skillMarkdown");
+    const runBtnEl = $("runBtn");
+    const repoBtnEl = $("repoBtn");
+    const batchRepoBtnEl = $("batchRepoBtn");
+    const sampleBtnEl = $("sampleBtn");
+    const mdFileEl = $("mdFile");
+    const repoUrlEl = $("repoUrl");
+    const repoSkillPathEl = $("repoSkillPath");
+    const batchRepoUrlsEl = $("batchRepoUrls");
+    const statusEl = $("status");
+    const scoreEl = $("score");
+    const dimsEl = $("dims");
+    const tipsEl = $("tips");
+    const modeEl = $("mode");
+    const cardImageEl = $("cardImage");
+    const downloadLinkEl = $("downloadLink");
+    const downloadReportLinkEl = $("downloadReportLink");
+    const reportTextEl = $("reportText");
+    const rankListEl = $("rankList");
+    const historyListEl = $("historyList");
+
+    function renderRanking(ranking = []) {
+      if (!ranking.length) {
+        rankListEl.className = "history-empty";
+        rankListEl.textContent = "暂无数据";
+        return;
+      }
+      rankListEl.className = "";
+      rankListEl.innerHTML = "";
+      ranking.forEach((item, idx) => {
+        const row = document.createElement("div");
+        row.className = "rank-item";
+        row.innerHTML = `
+          <span>#${idx + 1} ${item.skill_name}</span>
+          <span>${item.total_score} 分</span>
+        `;
+        rankListEl.appendChild(row);
+      });
+    }
+
+    function setReportMarkdown(reportMarkdown, skillName = "ascend-skills-eval") {
+      if (!reportMarkdown) {
+        reportTextEl.textContent = "暂无报告";
+        downloadReportLinkEl.style.display = "none";
+        return;
+      }
+      reportTextEl.textContent = reportMarkdown;
+      const blob = new Blob([reportMarkdown], { type: "text/markdown;charset=utf-8" });
+      const url = URL.createObjectURL(blob);
+      downloadReportLinkEl.href = url;
+      downloadReportLinkEl.download = `${skillName || "skill"}-report.md`;
+      downloadReportLinkEl.style.display = "inline";
+    }
+
+    function renderEvalAndCard(evalInfo, card, reportMarkdown = "") {
+      scoreEl.textContent = String(evalInfo.total_score);
+      modeEl.textContent = `mode: ${evalInfo.mode}`;
+
+      dimsEl.innerHTML = "";
+      evalInfo.dimensions.forEach((d) => {
+        const row = document.createElement("div");
+        row.className = "dim";
+        row.innerHTML = `<span>${d.id}. ${d.name}</span><strong>${d.score}/10</strong>`;
+        dimsEl.appendChild(row);
+      });
+
+      tipsEl.innerHTML = "";
+      evalInfo.suggestions.forEach((s) => {
+        const li = document.createElement("li");
+        li.textContent = s;
+        tipsEl.appendChild(li);
+      });
+
+      const src = `data:${card.mime_type};base64,${card.image_base64}`;
+      cardImageEl.src = src;
+      cardImageEl.style.display = "block";
+
+      downloadLinkEl.href = src;
+      downloadLinkEl.download = "ascend-skills-eval-result.png";
+      downloadLinkEl.style.display = "inline";
+      setReportMarkdown(reportMarkdown, evalInfo.skill_name);
+    }
+
+    async function renderCardFromData(cardData) {
+      const resp = await fetch("/render-card", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ data: cardData, open_image: false }),
+      });
+      if (!resp.ok) {
+        const text = await resp.text();
+        throw new Error(text || "成果卡渲染失败");
+      }
+      return await resp.json();
+    }
+
+    async function replayHistoryItem(historyId) {
+      statusEl.textContent = "正在回放历史记录...";
+      statusEl.className = "status";
+      try {
+        const detailResp = await fetch(`/history/${historyId}`);
+        if (!detailResp.ok) {
+          const text = await detailResp.text();
+          throw new Error(text || "历史详情获取失败");
+        }
+        const detail = await detailResp.json();
+        skillNameEl.value = detail.skill_name || "";
+        skillMarkdownEl.value = detail.skill_markdown || "";
+        if (detail.source_type === "repo" && detail.source_ref) {
+          repoUrlEl.value = detail.source_ref;
+        }
+
+        const card = await renderCardFromData(detail.card_data);
+        const reportResp = await fetch("/eval", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            skill_name: detail.skill_name,
+            skill_markdown: detail.skill_markdown,
+          }),
+        });
+        const reportData = await reportResp.json();
+        const reportLines = [
+          "# ascend-skills-eval 评分报告（回放）",
+          "",
+          `- 技能名：${detail.skill_name}`,
+          `- 总分：${reportData.total_score}/100`,
+          `- 模式：${reportData.mode}`,
+          "",
+          "## 优化建议",
+          "",
+          ...reportData.suggestions.map((s, i) => `${i + 1}. ${s}`),
+        ];
+        renderEvalAndCard(detail.eval, card, reportLines.join("\n"));
+
+        statusEl.textContent = "历史回放完成";
+        statusEl.className = "status ok";
+      } catch (err) {
+        statusEl.textContent = `历史回放失败：${err.message}`;
+        statusEl.className = "status";
+      }
+    }
+
+    async function loadHistory() {
+      try {
+        const resp = await fetch("/history");
+        if (!resp.ok) throw new Error("加载历史失败");
+        const rows = await resp.json();
+        if (!rows.length) {
+          historyListEl.className = "history-empty";
+          historyListEl.textContent = "暂无历史";
+          return;
+        }
+        historyListEl.className = "";
+        historyListEl.innerHTML = "";
+        rows.forEach((r) => {
+          const row = document.createElement("div");
+          row.className = "history-item";
+          const ts = new Date(r.timestamp).toLocaleString();
+          row.innerHTML = `
+            <span>${r.skill_name}</span>
+            <span>${r.total_score} 分 · ${ts}</span>
+          `;
+          row.title = "点击回放本次结果";
+          row.addEventListener("click", () => replayHistoryItem(r.id));
+          historyListEl.appendChild(row);
+        });
+      } catch {
+        historyListEl.className = "history-empty";
+        historyListEl.textContent = "历史加载失败";
+      }
+    }
+
+    sampleBtnEl.addEventListener("click", () => {
+      skillMarkdownEl.value = sample;
+      statusEl.textContent = "已填入示例，可直接运行";
+      statusEl.className = "status ok";
+    });
+
+    mdFileEl.addEventListener("change", async (e) => {
+      const file = e.target.files && e.target.files[0];
+      if (!file) return;
+      try {
+        const text = await file.text();
+        skillMarkdownEl.value = text;
+        if (!skillNameEl.value.trim()) {
+          const inferred = file.name.replace(/\.(md|markdown)$/i, "");
+          skillNameEl.value = inferred || "ascend-skills-eval";
+        }
+        statusEl.textContent = `已加载文件：${file.name}`;
+        statusEl.className = "status ok";
+      } catch (err) {
+        statusEl.textContent = `读取文件失败：${err.message}`;
+        statusEl.className = "status";
+      }
+    });
+
+    runBtnEl.addEventListener("click", async () => {
+      const skill_markdown = skillMarkdownEl.value.trim();
+      const skill_name = skillNameEl.value.trim() || "unknown-skill";
+      if (!skill_markdown) {
+        statusEl.textContent = "请先粘贴 SKILL.md 内容";
+        statusEl.className = "status";
+        return;
+      }
+
+      runBtnEl.disabled = true;
+      statusEl.textContent = "处理中，请稍候...";
+      statusEl.className = "status";
+
+      try {
+        const resp = await fetch("/evaluate-and-render", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ skill_name, skill_markdown }),
+        });
+        if (!resp.ok) {
+          const text = await resp.text();
+          throw new Error(text || "请求失败");
+        }
+
+        const data = await resp.json();
+        const evalInfo = data.eval;
+        const card = data.card;
+        renderEvalAndCard(evalInfo, card, "");
+
+        statusEl.textContent = "完成：已生成评分与成果卡";
+        statusEl.className = "status ok";
+        await loadHistory();
+      } catch (err) {
+        statusEl.textContent = `失败：${err.message}`;
+        statusEl.className = "status";
+      } finally {
+        runBtnEl.disabled = false;
+      }
+    });
+
+    repoBtnEl.addEventListener("click", async () => {
+      const repo_url = repoUrlEl.value.trim();
+      const skill_path = repoSkillPathEl.value.trim();
+      if (!repo_url) {
+        statusEl.textContent = "请先输入仓库链接";
+        statusEl.className = "status";
+        return;
+      }
+
+      repoBtnEl.disabled = true;
+      statusEl.textContent = "正在拉取仓库并评估，请稍候...";
+      statusEl.className = "status";
+
+      try {
+        const payload = { repo_url };
+        if (skill_path) payload.skill_path = skill_path;
+        const resp = await fetch("/evaluate-repo", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload),
+        });
+        if (!resp.ok) {
+          const text = await resp.text();
+          throw new Error(text || "仓库评分失败");
+        }
+
+        const data = await resp.json();
+        skillNameEl.value = data.eval.skill_name || "";
+        renderEvalAndCard(data.eval, data.card, data.report_markdown || "");
+        renderRanking([]);
+        statusEl.textContent = `完成：仓库评分成功（文件：${data.picked_file}）`;
+        statusEl.className = "status ok";
+        await loadHistory();
+      } catch (err) {
+        statusEl.textContent = `仓库评分失败：${err.message}`;
+        statusEl.className = "status";
+      } finally {
+        repoBtnEl.disabled = false;
+      }
+    });
+
+    batchRepoBtnEl.addEventListener("click", async () => {
+      const lines = batchRepoUrlsEl.value
+        .split(/\r?\n/)
+        .map((s) => s.trim())
+        .filter(Boolean);
+      if (!lines.length) {
+        statusEl.textContent = "请先在批量输入框填写仓库链接（每行一个）";
+        statusEl.className = "status";
+        return;
+      }
+
+      batchRepoBtnEl.disabled = true;
+      statusEl.textContent = `正在批量评分（${lines.length} 个仓库）...`;
+      statusEl.className = "status";
+
+      try {
+        const skill_path = repoSkillPathEl.value.trim();
+        const items = lines.map((repo_url) => {
+          const item = { repo_url };
+          if (skill_path) item.skill_path = skill_path;
+          return item;
+        });
+        const resp = await fetch("/evaluate-repos", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ items }),
+        });
+        if (!resp.ok) {
+          const text = await resp.text();
+          throw new Error(text || "批量评分失败");
+        }
+        const data = await resp.json();
+        renderRanking(data.ranking || []);
+        setReportMarkdown(data.batch_report_markdown || "", "batch-repo-eval");
+
+        if (data.top_card) {
+          const first = data.ranking && data.ranking[0];
+          const fakeEval = {
+            skill_name: first ? first.skill_name : "top-result",
+            total_score: first ? first.total_score : "--",
+            mode: "batch_repo_eval",
+            dimensions: [],
+            suggestions: [],
+          };
+          renderEvalAndCard(fakeEval, data.top_card, data.batch_report_markdown || "");
+        }
+
+        statusEl.textContent = `批量完成：成功 ${data.summary.success} / 失败 ${data.summary.failed}`;
+        statusEl.className = "status ok";
+        await loadHistory();
+      } catch (err) {
+        statusEl.textContent = `批量评分失败：${err.message}`;
+        statusEl.className = "status";
+      } finally {
+        batchRepoBtnEl.disabled = false;
+      }
+    });
+
+    loadHistory();
+  </script>
+</body>
+</html>
