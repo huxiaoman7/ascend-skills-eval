@@ -91,17 +91,20 @@ curl -X POST "http://127.0.0.1:8000/evaluate-repos" \
 
 ### 方式A：Dockerfile 部署（推荐）
 
+**重要（为何曾出现「RUNNING 但只有 Caddy、网站 404」）**：Zeabur 文档写明，只有仓库**根目录**存在 `Dockerfile` / `dockerfile` 时才会按 Docker 构建。若仅有 `web-service/Dockerfile` 而无根 `Dockerfile`，平台会走 **Git 默认流程（内置 Caddy 监听 8080）**，不是你的 FastAPI → 运行时日志里几乎只有 Caddy，`/health` 也会 404。本仓库已在**根目录**提供 `Dockerfile`，推送后重新部署即可。
+
 1. 将本仓库推到 GitHub（例如 `huxiaoman7/ascend-skills-eval`）
 2. 在 Zeabur 新建 Project，选择 **ascend-skills-eval** 仓库
-3. Service 类型选择 **Dockerfile**
-4. Dockerfile 路径填：`web-service/Dockerfile`（不是 `skills-eval/...`，那是整仓 monorepo 里的路径）
-5. **Root Directory / 根目录**：留空，表示**本仓库根目录**（与 Dockerfile 里 `COPY web-service/...`、`COPY skills/...` 一致）。若填成 `web-service`，构建会找不到 `web-service/requirements.txt`，部署失败或一直 **404**
-6. 端口：`8000`，或与面板中的 **公开端口** 一致；镜像内 `CMD` 已使用环境变量 `PORT`
+3. 使用 **根目录 `Dockerfile`**（自动检测即可；无需再单独指定子路径，除非你在面板里显式改过）
+4. **Root Directory**：留空（仓库根）
+5. 根 `Dockerfile` 默认 `PORT=8080` / `EXPOSE 8080`，与 Zeabur 常见 Web 端口一致；`CMD` 使用 `${PORT}`，若平台注入其他端口也会生效
+6. 子目录 `web-service/Dockerfile` 与根文件内容一致，仅供本地 `docker build -f web-service/Dockerfile .` 使用
 7. 部署成功后验收：
-   - `https://<你的域名>/health` 应返回 **200** 与 JSON：`{"status":"ok","service":"ascend-skills-eval"}`
-   - `https://<你的域名>/` 为评测页
+   - **Runtime Logs** 中应出现 **Uvicorn** 启动行（例如 `Uvicorn running on http://0.0.0.0:8080`），而不是只有 Caddy
+   - `https://<你的域名>/health` → **200** + JSON：`{"status":"ok","service":"ascend-skills-eval"}`
+   - `https://<你的域名>/` → 评测页
 
-若浏览器显示 **HTTP ERROR 404**（且 `/health` 也是 404），说明边缘网关后面**没有健康的容器**（常见：构建失败、Root Directory 填错、未绑定正确仓库、或镜像未监听 `PORT`）。请到 Zeabur 该 Service 的 **Build Logs / Runtime Logs** 查看报错。
+若仍为 404：看 **Build Logs** 是否在用 Docker 构建；若构建成功但日志仍只有 Caddy，检查 Zeabur 是否开启了 `ZBPACK_IGNORE_DOCKERFILE` 或 `zbpack.json` 里 `ignore_dockerfile`。
 
 ### 方式B：源码构建（可选）
 

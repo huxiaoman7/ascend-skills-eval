@@ -1,5 +1,5 @@
-# 本地：在仓库根执行 docker build -f web-service/Dockerfile .
-# Zeabur 使用仓库根目录的 Dockerfile（平台自动检测根路径）。
+# Zeabur 仅在仓库根目录存在名为 Dockerfile/dockerfile 时才会按 Docker 构建。
+# 若只有 web-service/Dockerfile，平台会回退为默认 Caddy(:8080)，运行时日志里只有 Caddy、公网访问易 404。
 FROM mcr.microsoft.com/playwright/python:v1.54.0-jammy
 
 WORKDIR /app
