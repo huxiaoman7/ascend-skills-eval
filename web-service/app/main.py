@@ -354,6 +354,7 @@ def _evaluate_repo_internal(payload: RepoEvalRequest, *, add_history: bool = Tru
             "report_markdown": report_markdown,
             "picked_file": picked_rel,
             "repo_url": repo_url,
+            "skill_markdown": skill_markdown,
             "history_id": history_id,
         }
 

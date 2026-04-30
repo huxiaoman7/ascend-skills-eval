@@ -36,6 +36,7 @@
       margin: 0 0 22px;
       color: var(--muted);
       font-size: 14px;
+      line-height: 1.55;
     }
     .grid {
       display: grid;
@@ -47,6 +48,18 @@
       border: 1px solid var(--line);
       border-radius: 14px;
       padding: 14px;
+    }
+    .card-title {
+      font-size: 15px;
+      font-weight: 700;
+      margin: 0 0 4px;
+      color: var(--text);
+    }
+    .card-hint {
+      font-size: 12px;
+      color: var(--muted);
+      margin: 0 0 14px;
+      line-height: 1.45;
     }
     .label {
       font-size: 13px;
@@ -69,11 +82,18 @@
       font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
       line-height: 1.45;
     }
+    textarea.compact {
+      min-height: 120px;
+    }
     .actions {
       display: flex;
       gap: 10px;
-      margin-top: 10px;
+      margin-top: 12px;
       flex-wrap: wrap;
+    }
+    .actions button {
+      flex: 1;
+      min-width: 140px;
     }
     button {
       cursor: pointer;
@@ -87,8 +107,59 @@
       background: #263867;
       border: 1px solid #345097;
     }
+    button:disabled {
+      opacity: 0.55;
+      cursor: not-allowed;
+      transform: none;
+    }
+    .tab-strip {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 12px;
+      flex-wrap: wrap;
+    }
+    .tab-btn {
+      flex: 1;
+      min-width: 0;
+      padding: 10px 12px;
+      border-radius: 10px;
+      border: 1px solid var(--line);
+      background: var(--card);
+      color: var(--muted);
+      font-weight: 600;
+      font-size: 13px;
+      line-height: 1.3;
+    }
+    .tab-btn.active {
+      border-color: rgba(95, 140, 255, 0.65);
+      color: var(--text);
+      background: linear-gradient(180deg, rgba(71, 111, 248, 0.22), rgba(17, 26, 51, 0.95));
+      box-shadow: 0 0 0 1px rgba(95, 140, 255, 0.28);
+    }
+    .tab-panel[hidden] {
+      display: none !important;
+    }
+    .panel-block {
+      padding-top: 2px;
+    }
+    .shared-path {
+      margin-bottom: 14px;
+      padding: 12px;
+      border-radius: 12px;
+      border: 1px dashed #2e457d;
+      background: rgba(15, 23, 42, 0.35);
+    }
+    .shared-path .label {
+      margin-bottom: 6px;
+    }
+    .shared-path .hint {
+      font-size: 11px;
+      color: #7a8ab8;
+      margin-top: 6px;
+      line-height: 1.4;
+    }
     .status {
-      margin-top: 10px;
+      margin-top: 12px;
       font-size: 13px;
       color: var(--muted);
       min-height: 20px;
@@ -210,38 +281,73 @@
     @media (max-width: 960px) {
       .grid { grid-template-columns: 1fr; }
       textarea { min-height: 260px; }
+      textarea.compact { min-height: 100px; }
     }
   </style>
 </head>
 <body>
   <div class="wrap">
     <h1 class="title">ascend-skills-eval 在线评测</h1>
-    <p class="sub">粘贴 SKILL.md 内容，点击按钮即可在线评分并生成成果卡。</p>
+    <p class="sub">三种方式任选其一：粘贴 SKILL 全文、单个仓库拉取、或多仓库批量对比。切换上方标签后，仅显示当前方式所需的输入与按钮。</p>
 
     <div class="grid">
-      <section class="card">
-        <div class="label">技能名（可选）</div>
-        <input id="skillName" value="ascend-skills-eval" />
-
-        <div class="label" style="margin-top:10px;">仓库链接评分（GitHub/GitCode）</div>
-        <input id="repoUrl" placeholder="https://github.com/owner/repo 或 https://gitcode.com/owner/repo" />
-        <input id="repoSkillPath" placeholder="可选：仓库内文件路径，如 skills/foo/SKILL.md" style="margin-top:6px;" />
-        <textarea id="batchRepoUrls" placeholder="批量仓库链接（每行一个，可混合 GitHub/GitCode）" style="min-height:120px;margin-top:6px;"></textarea>
-
-        <div class="label" style="margin-top:10px;">SKILL.md 内容</div>
-        <input type="file" id="mdFile" accept=".md,.markdown,text/markdown,text/plain" style="margin-bottom:8px;" />
-        <textarea id="skillMarkdown" placeholder="在这里粘贴完整 SKILL.md"></textarea>
-
-        <div class="actions">
-          <button id="runBtn">评估并生成成果卡</button>
-          <button class="secondary" id="repoBtn">从仓库链接评分</button>
-          <button class="secondary" id="batchRepoBtn">批量仓库评分</button>
-          <button class="secondary" id="sampleBtn">填入示例</button>
+      <section class="card" aria-label="评测输入">
+        <div class="tab-strip" role="tablist" aria-label="评测方式">
+          <button type="button" class="tab-btn active" id="tabBtnPaste" role="tab" aria-selected="true" aria-controls="panelPaste">粘贴 SKILL</button>
+          <button type="button" class="tab-btn" id="tabBtnRepo" role="tab" aria-selected="false" aria-controls="panelRepo">单仓库</button>
+          <button type="button" class="tab-btn" id="tabBtnBatch" role="tab" aria-selected="false" aria-controls="panelBatch">批量仓库</button>
         </div>
-        <div class="status" id="status">等待输入</div>
+
+        <div class="shared-path" id="sharedSkillPathWrap" hidden>
+          <div class="label">仓库内 SKILL 路径（可选）</div>
+          <input id="repoSkillPath" placeholder="例如 skills/foo/SKILL.md，留空则自动探测" autocomplete="off" />
+          <div class="hint">单仓库与批量共用此路径；仅当仓库结构非默认时需要填写。</div>
+        </div>
+
+        <div class="tab-panel panel-block" id="panelPaste" role="tabpanel" aria-labelledby="tabBtnPaste">
+          <h2 class="card-title">粘贴 SKILL.md</h2>
+          <p class="card-hint">适合本地已打开的文件或编辑器内容，右侧将展示维度分、建议与成果卡 PNG。</p>
+          <div class="label">技能名（可选，用于下载文件名）</div>
+          <input id="skillName" value="ascend-skills-eval" autocomplete="off" />
+
+          <div class="label" style="margin-top:10px;">从文件加载（可选）</div>
+          <input type="file" id="mdFile" accept=".md,.markdown,text/markdown,text/plain" />
+
+          <div class="label" style="margin-top:10px;">SKILL.md 全文</div>
+          <textarea id="skillMarkdown" placeholder="将完整 SKILL.md 粘贴到此处，然后点击下方主按钮"></textarea>
+
+          <div class="actions">
+            <button type="button" id="runBtn">评估并生成成果卡</button>
+            <button type="button" class="secondary" id="sampleBtn">填入示例</button>
+          </div>
+        </div>
+
+        <div class="tab-panel panel-block" id="panelRepo" role="tabpanel" aria-labelledby="tabBtnRepo" hidden>
+          <h2 class="card-title">单个仓库</h2>
+          <p class="card-hint">服务端克隆仓库并定位 SKILL.md。完成后右侧展示分数与成果卡；拉取到的正文会同步到「粘贴 SKILL」标签中的编辑区，便于你继续改一版再评。</p>
+          <div class="label">仓库链接（GitHub / GitCode）</div>
+          <input id="repoUrl" placeholder="https://github.com/owner/repo 或 https://gitcode.com/owner/repo" autocomplete="off" />
+
+          <div class="actions">
+            <button type="button" class="secondary" id="repoBtn">从仓库链接评分</button>
+          </div>
+        </div>
+
+        <div class="tab-panel panel-block" id="panelBatch" role="tabpanel" aria-labelledby="tabBtnBatch" hidden>
+          <h2 class="card-title">批量仓库</h2>
+          <p class="card-hint">每行一个仓库 URL；右侧展示排行榜与汇总报告，第一名详情与成果卡会同步展示。</p>
+          <div class="label">仓库链接列表（每行一个）</div>
+          <textarea id="batchRepoUrls" class="compact" placeholder="https://github.com/org/repo-a&#10;https://github.com/org/repo-b"></textarea>
+
+          <div class="actions">
+            <button type="button" class="secondary" id="batchRepoBtn">批量仓库评分</button>
+          </div>
+        </div>
+
+        <div class="status" id="status">请选择标签并填写对应内容</div>
       </section>
 
-      <section class="card">
+      <section class="card" aria-label="评测结果">
         <div class="score" id="score">--.-</div>
         <div class="label">维度评分</div>
         <div id="dims"></div>
@@ -262,7 +368,7 @@
         </div>
         <div class="rank">
           <h3>批量评分排行榜</h3>
-          <div id="rankList" class="history-empty">暂无数据</div>
+          <div id="rankList" class="history-empty">仅在「批量仓库」评测后展示</div>
         </div>
         <div class="history">
           <h3>最近 10 次评测</h3>
@@ -317,10 +423,54 @@ description: 昇腾技能评测器，提供结构评估和NPU验证流程。
     const rankListEl = $("rankList");
     const historyListEl = $("historyList");
 
+    const tabBtnPaste = $("tabBtnPaste");
+    const tabBtnRepo = $("tabBtnRepo");
+    const tabBtnBatch = $("tabBtnBatch");
+    const panelPaste = $("panelPaste");
+    const panelRepo = $("panelRepo");
+    const panelBatch = $("panelBatch");
+    const sharedSkillPathWrap = $("sharedSkillPathWrap");
+
+    let activeTab = "paste";
+
+    function setTab(which) {
+      activeTab = which;
+      const map = [
+        { id: "paste", btn: tabBtnPaste, panel: panelPaste },
+        { id: "repo", btn: tabBtnRepo, panel: panelRepo },
+        { id: "batch", btn: tabBtnBatch, panel: panelBatch },
+      ];
+      map.forEach(({ id, btn, panel }) => {
+        const on = id === which;
+        btn.classList.toggle("active", on);
+        btn.setAttribute("aria-selected", on ? "true" : "false");
+        panel.hidden = !on;
+      });
+      sharedSkillPathWrap.hidden = which === "paste";
+      if (which === "paste") {
+        statusEl.textContent = skillMarkdownEl.value.trim()
+          ? "已填写 SKILL，可直接评估"
+          : "请粘贴 SKILL.md 或载入示例";
+      } else if (which === "repo") {
+        statusEl.textContent = repoUrlEl.value.trim()
+          ? "已填写仓库链接，可从仓库评分"
+          : "请输入仓库链接";
+      } else {
+        statusEl.textContent = batchRepoUrlsEl.value.trim()
+          ? "已填写批量列表，可开始批量评分"
+          : "请每行填写一个仓库链接";
+      }
+      statusEl.className = "status";
+    }
+
+    tabBtnPaste.addEventListener("click", () => setTab("paste"));
+    tabBtnRepo.addEventListener("click", () => setTab("repo"));
+    tabBtnBatch.addEventListener("click", () => setTab("batch"));
+
     function renderRanking(ranking = []) {
       if (!ranking.length) {
         rankListEl.className = "history-empty";
-        rankListEl.textContent = "暂无数据";
+        rankListEl.textContent = "暂无数据（使用「批量仓库」后出现）";
         return;
       }
       rankListEl.className = "";
@@ -402,6 +552,7 @@ description: 昇腾技能评测器，提供结构评估和NPU验证流程。
           throw new Error(text || "历史详情获取失败");
         }
         const detail = await detailResp.json();
+        setTab("paste");
         skillNameEl.value = detail.skill_name || "";
         skillMarkdownEl.value = detail.skill_markdown || "";
         if (detail.source_type === "repo" && detail.source_ref) {
@@ -471,6 +622,7 @@ description: 昇腾技能评测器，提供结构评估和NPU验证流程。
 
     sampleBtnEl.addEventListener("click", () => {
       skillMarkdownEl.value = sample;
+      setTab("paste");
       statusEl.textContent = "已填入示例，可直接运行";
       statusEl.className = "status ok";
     });
@@ -481,6 +633,7 @@ description: 昇腾技能评测器，提供结构评估和NPU验证流程。
       try {
         const text = await file.text();
         skillMarkdownEl.value = text;
+        setTab("paste");
         if (!skillNameEl.value.trim()) {
           const inferred = file.name.replace(/\.(md|markdown)$/i, "");
           skillNameEl.value = inferred || "ascend-skills-eval";
@@ -499,6 +652,7 @@ description: 昇腾技能评测器，提供结构评估和NPU验证流程。
       if (!skill_markdown) {
         statusEl.textContent = "请先粘贴 SKILL.md 内容";
         statusEl.className = "status";
+        setTab("paste");
         return;
       }
 
@@ -539,6 +693,7 @@ description: 昇腾技能评测器，提供结构评估和NPU验证流程。
       if (!repo_url) {
         statusEl.textContent = "请先输入仓库链接";
         statusEl.className = "status";
+        setTab("repo");
         return;
       }
 
@@ -561,9 +716,10 @@ description: 昇腾技能评测器，提供结构评估和NPU验证流程。
 
         const data = await resp.json();
         skillNameEl.value = data.eval.skill_name || "";
+        skillMarkdownEl.value = data.skill_markdown || skillMarkdownEl.value;
         renderEvalAndCard(data.eval, data.card, data.report_markdown || "");
         renderRanking([]);
-        statusEl.textContent = `完成：仓库评分成功（文件：${data.picked_file}）`;
+        statusEl.textContent = `完成：仓库评分成功（${data.picked_file}）· 正文已同步到「粘贴 SKILL」标签，可改后再评`;
         statusEl.className = "status ok";
         await loadHistory();
       } catch (err) {
@@ -582,6 +738,7 @@ description: 昇腾技能评测器，提供结构评估和NPU验证流程。
       if (!lines.length) {
         statusEl.textContent = "请先在批量输入框填写仓库链接（每行一个）";
         statusEl.className = "status";
+        setTab("batch");
         return;
       }
 
@@ -632,6 +789,7 @@ description: 昇腾技能评测器，提供结构评估和NPU验证流程。
       }
     });
 
+    setTab("paste");
     loadHistory();
   </script>
 </body>
