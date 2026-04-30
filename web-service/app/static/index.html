@@ -308,11 +308,36 @@
       line-height: 1.45;
       color: #d8e2ff;
     }
-    .history h3 {
-      margin: 0 0 8px;
+    .history-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 8px;
+    }
+    .history-head h3 {
+      margin: 0;
       font-size: 13px;
       color: var(--muted);
       font-weight: 600;
+      flex: 1;
+      min-width: 0;
+    }
+    button.history-clear-all {
+      flex-shrink: 0;
+      width: auto;
+      min-width: auto;
+      padding: 6px 12px;
+      font-size: 12px;
+      font-weight: 600;
+      background: #263867;
+      border: 1px solid #345097;
+      color: #c7d5ff;
+      border-radius: 10px;
+    }
+    button.history-clear-all:hover {
+      border-color: #5f8cff;
+      color: #e8ecff;
     }
     .history-item {
       display: flex;
@@ -454,7 +479,10 @@
           <div id="rankList" class="history-empty">仅在「批量仓库」评测后展示</div>
         </div>
         <div class="history">
-          <h3>本机最近 10 次评测</h3>
+          <div class="history-head">
+            <h3>本机最近 10 次评测</h3>
+            <button type="button" class="history-clear-all" id="historyClearAllBtn">清空全部</button>
+          </div>
           <div id="historyList" class="history-empty">暂无历史（仅存当前浏览器）</div>
         </div>
       </section>
@@ -506,6 +534,7 @@ description: 昇腾技能评测器，提供结构评估和NPU验证流程。
     const rankListEl = $("rankList");
     const rankHintEl = $("rankHint");
     const historyListEl = $("historyList");
+    const historyClearAllBtn = $("historyClearAllBtn");
     const downloadBatchSummaryLinkEl = $("downloadBatchSummaryLink");
 
     const tabBtnPaste = $("tabBtnPaste");
@@ -560,6 +589,21 @@ description: 昇腾技能评测器，提供结构评估和NPU验证流程。
       localHistoryWrite(next);
       loadHistory();
       statusEl.textContent = "已删除本条本机历史";
+      statusEl.className = "status ok";
+    }
+
+    function localHistoryClearAll() {
+      if (!localHistoryRead().length) {
+        statusEl.textContent = "当前没有本机历史";
+        statusEl.className = "status";
+        return;
+      }
+      if (!confirm("确定清空全部本机评测历史？此操作不可恢复。")) {
+        return;
+      }
+      localHistoryWrite([]);
+      loadHistory();
+      statusEl.textContent = "已清空全部本机历史";
       statusEl.className = "status ok";
     }
 
@@ -813,6 +857,8 @@ description: 昇腾技能评测器，提供结构评估和NPU验证流程。
         historyListEl.appendChild(row);
       });
     }
+
+    historyClearAllBtn.addEventListener("click", () => localHistoryClearAll());
 
     sampleBtnEl.addEventListener("click", () => {
       skillMarkdownEl.value = sample;
