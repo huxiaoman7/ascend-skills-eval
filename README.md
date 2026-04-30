@@ -5,7 +5,7 @@
 **面向昇腾生态的 SKILL.md 结构评测小站**  
 九维打分 · 改进建议 · Markdown 报告 · 成果卡 PNG · 浏览器里粘贴 / 单仓 / 批量一把梭
 
-[**🐛 报告问题**](https://github.com/huxiaoman7/ascend-skills-eval/issues) · [**💡 功能建议**](https://github.com/huxiaoman7/ascend-skills-eval/issues) · [**📎 Web 服务文档**](web-service/README.md)
+[**🌐 在线体验**](https://ascend-skills-eval.zeabur.app/) · [**🐛 报告问题**](https://github.com/huxiaoman7/ascend-skills-eval/issues) · [**💡 功能建议**](https://github.com/huxiaoman7/ascend-skills-eval/issues) · [**📎 Web 服务文档**](web-service/README.md)
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![GitHub stars](https://img.shields.io/github/stars/huxiaoman7/ascend-skills-eval?style=social)](https://github.com/huxiaoman7/ascend-skills-eval)
@@ -62,6 +62,8 @@
 
 ## 🚀 本地跑起来
 
+不想先装环境？可以直接打开 **[在线体验](https://ascend-skills-eval.zeabur.app/)**（Zeabur 托管；评测历史仍在你的浏览器 **localStorage**）。
+
 **环境**：Python **3.10+**、**Node.js**（Playwright 渲染 PNG 用）
 
 ```bash
@@ -78,8 +80,9 @@ uvicorn app.main:app --host 0.0.0.0 --port 8000
 
 | 打开 | 说明 |
 |------|------|
-| [http://127.0.0.1:8000/](http://127.0.0.1:8000/) | 评测主页 |
-| [http://127.0.0.1:8000/health](http://127.0.0.1:8000/health) | 健康检查 |
+| [在线体验](https://ascend-skills-eval.zeabur.app/) | 公网演示（与本地同源页面） |
+| [http://127.0.0.1:8000/](http://127.0.0.1:8000/) | 本地评测主页 |
+| [http://127.0.0.1:8000/health](http://127.0.0.1:8000/health) | 本地健康检查 |
 
 更多 **curl 示例**、Docker、线上部署细节见 [**web-service/README.md**](web-service/README.md)。
 
