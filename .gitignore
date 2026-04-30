@@ -5,3 +5,6 @@ __pycache__/
 *.pyc
 .venv/
 venv/
+
+# Local dev server logs
+web-service/.local-uvicorn.log
