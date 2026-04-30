@@ -183,11 +183,14 @@
       line-height: 1.5;
     }
     .preview {
-      margin-top: 12px;
+      margin: 0 0 14px;
       border-radius: 10px;
       overflow: hidden;
       border: 1px solid #30457f;
       background: #0a0f1f;
+    }
+    .result-scores {
+      margin-top: 0;
     }
     .preview img {
       width: 100%;
@@ -454,20 +457,22 @@
       </section>
 
       <section class="card" aria-label="评测结果">
-        <div class="score" id="score">--.-</div>
-        <div class="label">维度评分</div>
-        <div id="dims"></div>
-        <ul class="tips" id="tips"></ul>
-        <div class="meta">
-          <span id="mode">mode: -</span>
-          <div style="text-align:right;line-height:1.6;">
-            <a id="downloadLink" href="#" style="color:#9bb6ff;display:none;margin-right:10px;">下载成果卡 PNG</a>
-            <a id="downloadReportLink" href="#" style="color:#9bb6ff;display:none;margin-right:10px;">下载当前报告 MD</a>
-            <a id="downloadBatchSummaryLink" href="#" style="color:#c9d6ff;display:none;">下载批量汇总 MD</a>
-          </div>
-        </div>
-        <div class="preview">
+        <div class="preview" aria-label="成果卡预览">
           <img id="cardImage" alt="result card" />
+        </div>
+        <div class="result-scores">
+          <div class="score" id="score">--.-</div>
+          <div class="label">维度评分</div>
+          <div id="dims"></div>
+          <ul class="tips" id="tips"></ul>
+          <div class="meta">
+            <span id="mode">mode: -</span>
+            <div style="text-align:right;line-height:1.6;">
+              <a id="downloadLink" href="#" style="color:#9bb6ff;display:none;margin-right:10px;">下载成果卡 PNG</a>
+              <a id="downloadReportLink" href="#" style="color:#9bb6ff;display:none;margin-right:10px;">下载当前报告 MD</a>
+              <a id="downloadBatchSummaryLink" href="#" style="color:#c9d6ff;display:none;">下载批量汇总 MD</a>
+            </div>
+          </div>
         </div>
         <div class="report">
           <h3 style="margin:0 0 8px;font-size:13px;color:#9aa8d1;font-weight:600;">评分报告（摘要）</h3>

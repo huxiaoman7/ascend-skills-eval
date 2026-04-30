@@ -87,16 +87,21 @@ curl -X POST "http://127.0.0.1:8000/evaluate-repos" \
 
 ## Zeabur 部署
 
+本服务在独立仓库 **ascend-skills-eval** 中发布（根目录下即有 `web-service/`、`skills/`）。Zeabur 必须绑定**该仓库**，不要绑定 MoFixGo 根仓（根仓 Git 里通常没有本服务代码）。
+
 ### 方式A：Dockerfile 部署（推荐）
 
-1. 将仓库推到 GitHub
-2. 在 Zeabur 新建 Project，选择该仓库
+1. 将本仓库推到 GitHub（例如 `huxiaoman7/ascend-skills-eval`）
+2. 在 Zeabur 新建 Project，选择 **ascend-skills-eval** 仓库
 3. Service 类型选择 **Dockerfile**
-4. Dockerfile 路径填：`skills-eval/web-service/Dockerfile`
-5. 端口设置：`8000`（或保持 `PORT` 环境变量）
-6. 部署完成后访问：
-   - `https://<your-domain>/`（在线页面）
-   - `https://<your-domain>/health`（健康检查）
+4. Dockerfile 路径填：`web-service/Dockerfile`（不是 `skills-eval/...`，那是整仓 monorepo 里的路径）
+5. **Root Directory / 根目录**：留空，表示**本仓库根目录**（与 Dockerfile 里 `COPY web-service/...`、`COPY skills/...` 一致）。若填成 `web-service`，构建会找不到 `web-service/requirements.txt`，部署失败或一直 **404**
+6. 端口：`8000`，或与面板中的 **公开端口** 一致；镜像内 `CMD` 已使用环境变量 `PORT`
+7. 部署成功后验收：
+   - `https://<你的域名>/health` 应返回 **200** 与 JSON：`{"status":"ok","service":"ascend-skills-eval"}`
+   - `https://<你的域名>/` 为评测页
+
+若浏览器显示 **HTTP ERROR 404**（且 `/health` 也是 404），说明边缘网关后面**没有健康的容器**（常见：构建失败、Root Directory 填错、未绑定正确仓库、或镜像未监听 `PORT`）。请到 Zeabur 该 Service 的 **Build Logs / Runtime Logs** 查看报错。
 
 ### 方式B：源码构建（可选）
 
