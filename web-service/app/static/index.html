@@ -323,10 +323,9 @@
         </div>
 
         <div class="tab-panel panel-block" id="panelRepo" role="tabpanel" aria-labelledby="tabBtnRepo" hidden>
-          <h2 class="card-title">单个仓库</h2>
-          <p class="card-hint">服务端克隆仓库并定位 SKILL.md。完成后右侧展示分数与成果卡；拉取到的正文会同步到「粘贴 SKILL」标签中的编辑区，便于你继续改一版再评。</p>
-          <div class="label">仓库链接（GitHub / GitCode）</div>
-          <input id="repoUrl" placeholder="https://github.com/owner/repo 或 https://gitcode.com/owner/repo" autocomplete="off" />
+          <h2 class="card-title">单仓库</h2>
+          <div class="label">仓库链接（公开可读）</div>
+          <input id="repoUrl" placeholder="粘贴 HTTPS 克隆地址（GitHub / GitCode 等）" autocomplete="off" />
 
           <div class="actions">
             <button type="button" class="secondary" id="repoBtn">从仓库链接评分</button>
