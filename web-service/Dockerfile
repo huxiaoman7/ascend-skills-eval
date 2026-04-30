@@ -2,6 +2,15 @@
 # Zeabur 使用仓库根目录的 Dockerfile（平台自动检测根路径）。
 FROM mcr.microsoft.com/playwright/python:v1.54.0-jammy
 
+USER root
+
+RUN apt-get update \
+  && apt-get install -y --no-install-recommends ca-certificates curl \
+  && curl -fsSL https://deb.nodesource.com/setup_20.x | bash - \
+  && apt-get install -y --no-install-recommends nodejs \
+  && npm install -g playwright@1.54.0 \
+  && rm -rf /var/lib/apt/lists/*
+
 WORKDIR /app
 
 COPY web-service/requirements.txt /app/requirements.txt

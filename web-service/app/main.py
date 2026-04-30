@@ -360,7 +360,17 @@ def render_card(payload: RenderRequest) -> RenderResponse:
         if not payload.open_image:
             cmd.append("--no-open")
 
-        proc = subprocess.run(cmd, capture_output=True, text=True)
+        try:
+            proc = subprocess.run(cmd, capture_output=True, text=True, timeout=180)
+        except FileNotFoundError as exc:
+            fname = getattr(exc, "filename", "") or ""
+            if Path(fname).name == "node":
+                raise HTTPException(
+                    status_code=503,
+                    detail="服务端缺少 Node.js，无法渲染成果卡 PNG。请在运行环境中安装 Node 与 Playwright CLI。",
+                ) from exc
+            raise
+
         if proc.returncode != 0:
             raise HTTPException(
                 status_code=500,

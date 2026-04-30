@@ -106,6 +106,10 @@ curl -X POST "http://127.0.0.1:8000/evaluate-repos" \
 
 若仍为 404：看 **Build Logs** 是否在用 Docker 构建；若构建成功但日志仍只有 Caddy，检查 Zeabur 是否开启了 `ZBPACK_IGNORE_DOCKERFILE` 或 `zbpack.json` 里 `ignore_dockerfile`。
 
+### 常见问题：首页能打开，但「单仓库 / 评测并出图」报 500？
+
+单仓评测与粘贴「评估并生成成果卡」都会在服务端调用 **Node**：`skills/skills-eval/scripts/render-card.mjs` + npm **playwright**。`mcr.microsoft.com/playwright/python` 基础镜像**不带 Node**，若镜像里没有安装 Node，会在 `subprocess` 阶段失败并表现为 **`Internal Server Error`**。当前根 `Dockerfile` 已在本机构建步骤中安装 **Node 20（NodeSource）与 `playwright@1.54.0`**，与镜像内已有的 Chromium registry 对齐。重新构建并部署后即可恢复。
+
 ### 方式B：源码构建（可选）
 
 不建议，Playwright 浏览器依赖较多，Docker 更稳。
