@@ -16,8 +16,6 @@
 
 ![Ascend Skills-Eval web UI — paste / single repo / batch tabs, scores, local history](docs/screenshots/web-ui.png)
 
-*左：粘贴 SKILL / 单仓库 / 批量；右：分数、维度、报告与排行榜；本机最近 10 条历史仅存浏览器，可回放、删除与清空。*
-
 </div>
 
 ---
